@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SignInButton } from "@clerk/nextjs";
 import { FileText, Search, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,9 +33,11 @@ export default function Home() {
               Parameters
             </Link>
           </nav> */}
-          <Button className="bg-purple-600 hover:bg-purple-700">
-            Check Now
-          </Button>
+          <SignInButton>
+            <Button className="bg-purple-600 hover:bg-purple-700">
+              Check Now
+            </Button>
+          </SignInButton>
         </div>
       </header>
 
@@ -53,9 +56,11 @@ export default function Home() {
               internet database coverage of all the 3 trillion+ indexed web
               pages.
             </p>
-            <Button className="bg-purple-600 px-8 py-6 text-lg hover:bg-purple-700">
-              Check Now
-            </Button>
+            <SignInButton>
+              <Button className="bg-purple-600 px-8 py-6 text-lg hover:bg-purple-700">
+                Check Now
+              </Button>
+            </SignInButton>
           </div>
           <div className="relative h-[500px]">
             <Image
@@ -132,9 +137,11 @@ export default function Home() {
           <h2 className="mb-6 text-3xl font-bold">
             Avoid Plagiarism & Submit your Work Confidently
           </h2>
-          <Button className="bg-purple-600 px-8 py-6 text-lg hover:bg-purple-700">
-            Check Now
-          </Button>
+          <SignInButton>
+            <Button className="bg-purple-600 px-8 py-6 text-lg hover:bg-purple-700">
+              Check Now
+            </Button>
+          </SignInButton>
         </div>
       </section>
 
