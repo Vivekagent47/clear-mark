@@ -1,127 +1,180 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, FileText, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { FileText, AlertCircle, Loader2, Sun, Upload } from "lucide-react";
 
-export default function Component() {
-  const [text, setText] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
+export default function PlagiarismChecker() {
+  const [file, setFile] = useState<File | null>(null);
+  const [extractedText, setExtractedText] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wordCount, setWordCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newText = e.target.value;
-    setText(newText);
-    setWordCount(newText.trim() ? newText.trim().split(/\s+/).length : 0);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setError(null);
+      setResult(null);
+
+      try {
+        const text = await extractTextFromFile(selectedFile);
+        setExtractedText(text);
+        setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+      } catch (err) {
+        setError(
+          `Error extracting text from file: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+        setExtractedText("");
+        setWordCount(0);
+      }
+    }
   };
 
-  const handleCheck = async () => {
-    if (!text.trim()) {
-      setError("Please enter some text to check for plagiarism");
+  const extractTextFromFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        resolve(text);
+      };
+      reader.onerror = () => reject(new Error("File could not be read"));
+      reader.readAsText(file);
+    });
+  };
+
+  const checkPlagiarism = async () => {
+    if (!extractedText.trim()) {
+      setError("Please upload a file with content to check for plagiarism");
       return;
     }
 
-    setIsChecking(true);
+    setLoading(true);
     setError(null);
+    setResult(null);
 
     try {
-      // Simulating API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // For demo purposes, showing error
-      throw new Error(
-        "429 You exceeded your current quota, please check your plan and billing details.",
+      const response = await fetch("/api/plagiarism", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: extractedText }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.result);
+      }
+
+      const data = await response.json();
+      setResult(data.result);
+    } catch (error) {
+      setError(
+        `${error instanceof Error ? error : "An unknown error occurred"}`,
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setIsChecking(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-6 text-white">
-      <div className="mx-auto max-w-4xl space-y-8">
-        <div className="space-y-4 text-center">
-          <h1 className="bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-4xl font-bold text-transparent">
-            Welcome to Plagiarism Checker
-          </h1>
-          <p className="mx-auto max-w-2xl text-gray-400">
-            Advanced natural language processing to detect plagiarism in your
-            documents. Supports multiple file formats including PDF, PPT, and
-            CSV.
-          </p>
-        </div>
-
-        {/* Main Content */}
-        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <FileText className="h-5 w-5 text-white" />
+    <div className={`min-h-screen`}>
+      <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200 p-6 text-gray-900 transition-colors duration-300 dark:from-gray-900 dark:to-black dark:text-white">
+        <div className="mx-auto max-w-4xl space-y-8">
+          <div className="flex items-center justify-between">
+            <h1 className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-4xl font-bold text-transparent">
               Plagiarism Checker
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Textarea
-                placeholder="Enter or paste your text here..."
-                className="min-h-[200px] resize-none border-gray-700 bg-gray-800/50 text-white focus:border-purple-500"
-                value={text}
-                onChange={handleTextChange}
-              />
-              <Badge
-                variant="secondary"
-                className="absolute bottom-4 right-4 bg-gray-800"
-              >
-                Words: {wordCount}
-              </Badge>
+            </h1>
+            <div className="flex items-center space-x-2">
+              <Sun className="h-4 w-4" />
             </div>
+          </div>
 
-            <div className="flex justify-end">
-              <Button
-                onClick={handleCheck}
-                disabled={isChecking || !!!text.trim()}
-                className="bg-purple-600 hover:bg-purple-700"
+          <Card className="border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                Upload Your File
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div
+                className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors duration-300 hover:border-purple-500 dark:border-gray-700 dark:hover:border-purple-400"
+                onClick={() => fileInputRef.current?.click()}
               >
-                {isChecking ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  "Check Plagiarism"
-                )}
-              </Button>
-            </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".txt,.doc,.docx,.pdf"
+                  className="hidden"
+                />
+                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  Supported formats: TXT, DOC, DOCX, PDF
+                </p>
+              </div>
 
-            {error && (
-              <Alert
-                variant="destructive"
-                className="border-red-800 bg-red-900/50"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription className="mt-2">
-                  {error}
-                  {error.includes("429") && (
-                    <a
-                      href="https://platform.openai.com/docs/guides/error-codes/api-errors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 block text-red-400 underline hover:text-red-300"
-                    >
-                      Learn more about this error
-                    </a>
+              {file && (
+                <div className="flex items-center justify-between rounded bg-gray-100 p-2 dark:bg-gray-700">
+                  <span className="truncate text-sm">{file.name}</span>
+                  <Badge variant="secondary">Words: {wordCount}</Badge>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={checkPlagiarism}
+                  disabled={loading || !extractedText.trim()}
+                  className="bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    "Check Plagiarism"
                   )}
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+                </Button>
+              </div>
+
+              {error && (
+                <div>
+                  <Alert
+                    variant="destructive"
+                    className="border-red-200 bg-red-100 dark:border-red-800 dark:bg-red-900"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </div>
+              )}
+
+              {result && (
+                <div>
+                  <Alert className="border-green-200 bg-green-100 dark:border-green-800 dark:bg-green-900">
+                    <AlertTitle>Results</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap">
+                      {result}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
