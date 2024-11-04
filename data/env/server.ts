@@ -7,6 +7,7 @@ export const env = createEnv({
     DATABASE_URL: z.string().url(),
     CLERK_SECRET_KEY: z.string(),
     CLERK_WEBHOOK_SECRET: z.string(),
+    OPEN_AI_API: z.string(),
   },
   experimental__runtimeEnv: process.env,
 });
